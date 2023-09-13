@@ -1,0 +1,12 @@
+FROM rust:1.71-slim-buster
+
+WORKDIR /app
+COPY src ./src
+COPY Cargo.lock Cargo.toml ./
+
+RUN cargo install cargo-watch
+RUN cargo install diesel_cli --no-default-features --features postgres
+
+EXPOSE 8080
+
+CMD ["cargo", "watch", "-x", "run -- --host 0.0.0.0"]
