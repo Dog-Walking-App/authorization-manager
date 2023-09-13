@@ -1,14 +1,8 @@
-use actix_web::{get, Responder, web, HttpResponse, error};
+use actix_web::{get, post, Responder, web, HttpResponse, error};
+use serde::{Serialize, Deserialize};
 use crate::app_state::AppState;
-
-use serde::Serialize;
-use super::service::{UsersService, UsersServiceTrait};
-
-
-#[derive(Serialize)]
-struct UserResponse {
-    username: String,
-}
+use super::service::{UsersService, UsersServiceTrait, user_to_user_response};
+use super::model::NewUser;
 
 #[get("/")]
 async fn get_users(data: web::Data<AppState>) -> impl Responder {
@@ -21,9 +15,7 @@ async fn get_users(data: web::Data<AppState>) -> impl Responder {
     
     let mut users_response = Vec::new();
     for user in users {
-        let obj = UserResponse {
-            username: user.username,
-        };
+        let obj = user_to_user_response(&user);
         users_response.push(obj);
     }
 
@@ -42,9 +34,30 @@ async fn get_user_by_id(data: web::Data<AppState>, user_id: web::Path<i32>) -> a
             error::ErrorNotFound("User not found")
         })?;
     
-    let user_response: UserResponse = UserResponse {
-        username: user.username,
-    };
+    Ok(HttpResponse::Ok().json(user_to_user_response(&user)))
+}
 
-    Ok(HttpResponse::Ok().json(user_response))
+
+#[derive(Serialize, Deserialize)]
+struct NewUserPayload {
+    username: String,
+    password: String,
+}
+
+#[post("/")]
+async fn create_user(data: web::Data<AppState>, json_data: web::Json<NewUserPayload>) -> actix_web::Result<HttpResponse> {
+    let connection = &mut *data.connection.lock().unwrap();
+    let mut users_service = UsersService::new(connection);
+
+    let user = users_service
+        .create_user(&NewUser {
+            username: json_data.username.to_owned(),
+            password: json_data.password.to_owned(),
+        })
+        .map_err(|error| {
+            eprintln!("{}", error);
+            error::ErrorNotFound("Smth went wrong during user creation")
+        })?;
+    
+    Ok(HttpResponse::Ok().json(user_to_user_response(&user)))
 }

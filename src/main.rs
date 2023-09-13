@@ -5,6 +5,7 @@ use crate::args::Args;
 mod args;
 
 use crate::modules::users;
+use crate::modules::auth;
 mod modules;
 
 use crate::app_state::AppState;
@@ -41,6 +42,7 @@ async fn main() -> std::io::Result<()> {
         App::new()
             .app_data(app_state.clone())
             .service(users::get_users_routes())
+            .service(auth::get_auth_routes())
     })
     .bind((args.host, args.port))?
     .run()
