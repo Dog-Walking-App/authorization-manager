@@ -3,7 +3,7 @@ use serde::{Serialize, Deserialize};
 use crate::app_state::AppState;
 use super::service::{AuthService, AuthServiceTrait};
 use super::model::Credentials;
-use super::super::users::service::{UserResponse, user_to_user_response};
+use super::super::users::controller::UserResponse;
 
 #[derive(Serialize, Deserialize)]
 struct CredentialsPayload {
@@ -20,7 +20,8 @@ struct CredentialsResponse {
 #[post("/login")]
 async fn login(data: web::Data<AppState>, json_data: web::Json<CredentialsPayload>) -> impl Responder {
     let connection = &mut *data.connection.lock().unwrap();
-    let mut auth_service = AuthService::new(connection);
+    let jwt = &data.jwt;
+    let mut auth_service = AuthService::new(connection, jwt);
 
     let result = auth_service
         .login(&Credentials {
@@ -31,6 +32,6 @@ async fn login(data: web::Data<AppState>, json_data: web::Json<CredentialsPayloa
     
     HttpResponse::Ok().json(CredentialsResponse {
         jwt: result.jwt,
-        user: user_to_user_response(&result.user),
+        user: UserResponse::from_user(&result.user),
     })
 }

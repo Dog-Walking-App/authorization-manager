@@ -317,6 +317,7 @@ dependencies = [
  "dotenvy",
  "jsonwebtoken",
  "serde",
+ "serde_json",
 ]
 
 [[package]]

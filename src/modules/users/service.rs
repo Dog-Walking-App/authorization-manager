@@ -1,19 +1,7 @@
 use diesel::prelude::*;
-use serde::{Serialize, Deserialize};
 use crate::schema::users::dsl::*;
 use crate::utils::password::hash_password;
 use super::model::{User, NewUser};
-
-
-#[derive(Serialize, Deserialize)]
-pub struct UserResponse {
-    username: String,
-}
-pub fn user_to_user_response(user: &User) -> UserResponse {
-    UserResponse {
-        username: user.username.to_owned(),
-    }
-}
 
 pub trait UsersServiceTrait {
     fn create_user(&mut self, new_user: &NewUser) -> QueryResult<User>;
