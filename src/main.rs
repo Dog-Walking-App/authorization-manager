@@ -27,7 +27,6 @@ pub fn establish_connection(database_url: &str) -> PgConnection {
         .unwrap_or_else(|_| panic!("Error connecting to {}", database_url))
 }
 
-
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     let args: Args = Args::get();
@@ -42,7 +41,7 @@ async fn main() -> std::io::Result<()> {
         jwt,
     });
 
-
+    
     HttpServer::new(move || {
         App::new()
             .app_data(app_state.clone())

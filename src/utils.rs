@@ -1,3 +1,4 @@
 pub mod password;
 pub mod jwt;
-pub mod req_authorization;
+pub mod http_authorization_token;
+pub mod auth_validator;

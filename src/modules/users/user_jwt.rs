@@ -1,4 +1,3 @@
-use jsonwebtoken::errors::Error;
 use std::time::{SystemTime, Duration};
 use serde::{Serialize, Deserialize};
 use crate::utils::jwt::JWT;
@@ -44,7 +43,7 @@ impl<'a> UserJWT<'a> {
     pub fn get_claims(
         &self,
         token: &String,
-    ) -> Result<UserClaims, Error> {
+    ) -> Result<UserClaims, String> {
         let claims = self.jwt.get_claims::<Claims>(token)?;
         let user_id = claims.sub.parse::<i32>().unwrap();
 

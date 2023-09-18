@@ -1,7 +1,7 @@
-use actix_web::{error, get, post, web, HttpRequest, HttpResponse, Responder};
+use actix_web::{error, web, HttpRequest, HttpResponse, Responder};
 use serde::{Serialize, Deserialize};
 use crate::app_state::AppState;
-use crate::utils::req_authorization::ReqAuthorization;
+use crate::utils::http_authorization_token::HttpAuthorizationToken;
 use super::service::{UsersService, UsersServiceTrait};
 use super::model::{NewUser, User};
 use super::user_jwt::UserJWT;
@@ -19,8 +19,7 @@ impl UserResponse {
     }
 }
 
-#[get("/")]
-async fn get_users(data: web::Data<AppState>) -> impl Responder {
+pub async fn get_users(data: web::Data<AppState>) -> impl Responder {
     let connection = &mut *data.connection.lock().unwrap();
     let mut users_service = UsersService::new(connection);
 
@@ -37,8 +36,7 @@ async fn get_users(data: web::Data<AppState>) -> impl Responder {
     HttpResponse::Ok().json(users_response)
 }
 
-#[get("/{user_id}")]
-async fn get_user_by_id(data: web::Data<AppState>, user_id: web::Path<i32>) -> actix_web::Result<HttpResponse> {
+pub async fn get_user_by_id(data: web::Data<AppState>, user_id: web::Path<i32>) -> actix_web::Result<HttpResponse> {
     let connection = &mut *data.connection.lock().unwrap();
     let mut users_service = UsersService::new(connection);
 
@@ -52,13 +50,11 @@ async fn get_user_by_id(data: web::Data<AppState>, user_id: web::Path<i32>) -> a
     Ok(HttpResponse::Ok().json(UserResponse::from_user(&user)))
 }
 
-#[get("/me")]
-async fn get_me(data: web::Data<AppState>, req: HttpRequest) -> actix_web::Result<HttpResponse> {
+pub async fn get_me(data: web::Data<AppState>, req: HttpRequest) -> actix_web::Result<HttpResponse> {
     let connection = &mut *data.connection.lock().unwrap();
     let mut users_service = UsersService::new(connection);
 
-    let token = ReqAuthorization::get_token(&req)?;
-
+    let token = HttpAuthorizationToken::get_token(&req)?;
     let user_jwt = UserJWT::new(&data.jwt);
     let claims = user_jwt.get_claims(&token)
         .map_err(|error| {
@@ -77,13 +73,12 @@ async fn get_me(data: web::Data<AppState>, req: HttpRequest) -> actix_web::Resul
 }
 
 #[derive(Serialize, Deserialize)]
-struct NewUserPayload {
+pub struct NewUserPayload {
     username: String,
     password: String,
 }
 
-#[post("/")]
-async fn create_user(data: web::Data<AppState>, json_data: web::Json<NewUserPayload>) -> actix_web::Result<HttpResponse> {
+pub async fn create_user(data: web::Data<AppState>, json_data: web::Json<NewUserPayload>) -> actix_web::Result<HttpResponse> {
     let connection = &mut *data.connection.lock().unwrap();
     let mut users_service = UsersService::new(connection);
 

@@ -3,9 +3,9 @@ use actix_web::{
     http::header::HeaderValue,
 };
 
-pub struct ReqAuthorization {}
+pub struct HttpAuthorizationToken {}
 
-impl ReqAuthorization {
+impl HttpAuthorizationToken {
     pub fn get_token(req: &HttpRequest) -> Result<String, actix_web::Error> {
         let authorization = Self::extract_authorization_header(req)?;
         Self::extract_token(authorization)
