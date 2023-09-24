@@ -17,5 +17,5 @@ pub fn get_users_routes() -> Scope {
             .wrap(auth_validator_middleware.clone()))
         .route("/{user_id}", web::get().to(controller::get_user_by_id)
             .wrap(auth_validator_middleware.clone()))
-        .route("/", web::post().to(controller::create_user))
+        .route("", web::post().to(controller::create_user))
 }

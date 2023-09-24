@@ -2,11 +2,15 @@ FROM rust:1.71-slim-buster
 
 WORKDIR /app
 COPY src ./src
-COPY Cargo.lock Cargo.toml ./
+COPY migrations ./migrations
+COPY Cargo.lock Cargo.toml diesel.toml .env ./
 
+RUN apt-get update
+RUN apt-get install -y libpq-dev
 RUN cargo install cargo-watch
 RUN cargo install diesel_cli --no-default-features --features postgres
+RUN cargo build
 
 EXPOSE 8080
 
-CMD ["cargo", "watch", "-x", "run -- --host 0.0.0.0"]
+CMD ["sh", "-c", "diesel migration run --database-url=postgres://$DB_USERNAME:$DB_PASSWORD@$DB_HOST:$DB_PORT/$DB_NAME && cargo watch -x 'run -- --host 0.0.0.0'"]

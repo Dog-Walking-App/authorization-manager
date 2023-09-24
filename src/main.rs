@@ -21,10 +21,18 @@ pub mod schema;
 pub mod app_state;
 pub mod utils;
 
+pub struct DBConfig {
+    username: String,
+    password: String,
+    host: String,
+    port: String,
+    name: String,
+}
 
-pub fn establish_connection(database_url: &str) -> PgConnection {
+pub fn establish_connection(config: &DBConfig) -> PgConnection {
+    let database_url = format!("postgres://{}:{}@{}:{}/{}", config.username, config.password, config.host, config.port, config.name);
     PgConnection::establish(&database_url)
-        .unwrap_or_else(|_| panic!("Error connecting to {}", database_url))
+        .unwrap_or_else(|error| panic!("Error connecting to DB: {}", error))
 }
 
 #[actix_web::main]
@@ -32,7 +40,13 @@ async fn main() -> std::io::Result<()> {
     let args: Args = Args::get();
     let env_vars = EnvVars::load();
 
-    let connection = establish_connection(&env_vars.database_url);
+    let connection = establish_connection(&DBConfig {
+        username: env_vars.db_username,
+        password: env_vars.db_password,
+        host: env_vars.db_host,
+        port: env_vars.db_port,
+        name: env_vars.db_name,
+    });
 
     let jwt = JWT::new(env_vars.jwt_secret);
 
