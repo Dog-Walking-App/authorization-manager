@@ -329,6 +329,7 @@ dependencies = [
  "actix-web-httpauth",
  "argon2",
  "clap",
+ "derive_more",
  "diesel",
  "dotenvy",
  "futures",

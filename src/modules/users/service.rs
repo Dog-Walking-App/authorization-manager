@@ -1,23 +1,25 @@
 use diesel::prelude::*;
-use crate::schema::users::dsl::*;
 use crate::utils::password::hash_password;
+use crate::utils::service_error::ServiceError;
 use super::model::{User, NewUser};
+use super::db::{UsersDB, UsersDBTrait};
 
 pub trait UsersServiceTrait {
-    fn create_user(&mut self, new_user: &NewUser) -> QueryResult<User>;
-    fn get_user_by_id(&mut self, user_id: i32) -> QueryResult<User>;
-    fn get_all_users(&mut self) -> QueryResult<Vec<User>>;
-    fn update_user(&mut self, user_id: i32, updated_user: &NewUser) -> QueryResult<User>;
-    fn delete_user(&mut self, user_id: i32) -> QueryResult<User>;
+    fn create_user(&mut self, new_user: &NewUser) -> Result<User, ServiceError>;
+    fn get_user_by_id(&mut self, user_id: i32) -> Result<User, ServiceError>;
+    fn get_all_users(&mut self) -> Result<Vec<User>, ServiceError>;
+    fn update_user(&mut self, user_id: i32, updated_user: &NewUser) -> Result<User, ServiceError>;
+    fn delete_user(&mut self, user_id: i32) -> Result<User, ServiceError>;
 }
 
 pub struct UsersService<'a> {
-    connection: &'a mut PgConnection,
+    users_db: Box<dyn UsersDBTrait + 'a>,
 }
 
 impl<'a> UsersService<'a> {
     pub fn new(connection: &'a mut PgConnection) -> UsersService<'a> {
-        UsersService { connection }
+        let users_db = Box::new(UsersDB::new(connection));
+        UsersService { users_db }
     }
 
     fn hash_password_in_user(&mut self, user: &NewUser) -> NewUser {
@@ -32,31 +34,30 @@ impl<'a> UsersService<'a> {
 }
 
 impl<'a> UsersServiceTrait for UsersService<'a> {
-    fn create_user(&mut self, new_user: &NewUser) -> QueryResult<User> {
+    fn create_user(&mut self, new_user: &NewUser) -> Result<User, ServiceError> {
         let user = self.hash_password_in_user(new_user);
-        
-        diesel::insert_into(users)
-            .values(&user)
-            .get_result(self.connection)
+        self.users_db.insert(&user)
+            .map_err(|_| ServiceError::new("Failed to create user"))
     }
 
-    fn get_user_by_id(&mut self, user_id: i32) -> QueryResult<User> {
-        users.find(user_id).get_result(self.connection)
+    fn get_user_by_id(&mut self, user_id: i32) -> Result<User, ServiceError> {
+        self.users_db.find_by_id(user_id)
+            .map_err(|_| ServiceError::new("Failed to get user"))
     }
 
-    fn get_all_users(&mut self) -> QueryResult<Vec<User>> {
-        users.load::<User>(self.connection)
+    fn get_all_users(&mut self) -> Result<Vec<User>, ServiceError> {
+        self.users_db.find_all()
+           .map_err(|_| ServiceError::new("Failed to get users"))
     }
 
-    fn update_user(&mut self, user_id: i32, updated_user: &NewUser) -> QueryResult<User> {
+    fn update_user(&mut self, user_id: i32, updated_user: &NewUser) -> Result<User, ServiceError> {
         let user = self.hash_password_in_user(updated_user);
-
-        diesel::update(users.find(user_id))
-            .set(&user)
-            .get_result(self.connection)
+        self.users_db.update(user_id, &user)
+           .map_err(|_| ServiceError::new("Failed to update user"))
     }
 
-    fn delete_user(&mut self, user_id: i32) -> QueryResult<User> {
-        diesel::delete(users.find(user_id)).get_result(self.connection)
+    fn delete_user(&mut self, user_id: i32) -> Result<User, ServiceError> {
+        self.users_db.delete(user_id)
+            .map_err(|_| ServiceError::new("Failed to delete user"))
     }
 }

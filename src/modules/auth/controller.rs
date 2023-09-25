@@ -1,6 +1,7 @@
-use actix_web::{post, Responder, web, HttpResponse};
+use actix_web::{post, web, HttpResponse};
 use serde::{Serialize, Deserialize};
 use crate::app_state::AppState;
+use crate::utils::response_error::ResponseError;
 use super::service::{AuthService, AuthServiceTrait};
 use super::model::Credentials;
 use super::super::users::controller::UserResponse;
@@ -18,7 +19,7 @@ struct CredentialsResponse {
 }
 
 #[post("/login")]
-async fn login(data: web::Data<AppState>, json_data: web::Json<CredentialsPayload>) -> impl Responder {
+async fn login(data: web::Data<AppState>, json_data: web::Json<CredentialsPayload>) -> Result<HttpResponse, ResponseError> {
     let connection = &mut *data.connection.lock().unwrap();
     let jwt = &data.jwt;
     let mut auth_service = AuthService::new(connection, jwt);
@@ -28,10 +29,10 @@ async fn login(data: web::Data<AppState>, json_data: web::Json<CredentialsPayloa
             username: json_data.username.to_owned(),
             password: json_data.password.to_owned(),
         })
-        .expect("Error loading users");
+        .map_err(|_| ResponseError::ValidationError { field: "password".to_string() })?;
     
-    HttpResponse::Ok().json(CredentialsResponse {
+    Ok(HttpResponse::Ok().json(CredentialsResponse {
         jwt: result.jwt,
         user: UserResponse::from_user(&result.user),
-    })
+    }))
 }
