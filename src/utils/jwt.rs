@@ -9,6 +9,8 @@ fn get_current_time() -> u64 {
     since_epoch.as_secs()
 }
 
+
+#[derive(Clone)]
 pub struct JWT {
     secret: String,
 }

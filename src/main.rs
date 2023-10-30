@@ -1,6 +1,6 @@
 use actix_web::{web, App, HttpServer};
 use env::EnvVars;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
 use crate::args::Args;
 mod args;
@@ -9,7 +9,10 @@ mod env;
 use crate::utils::jwt::JWT;
 
 use crate::modules::users;
+use crate::modules::users::service::UsersService;
+use crate::modules::users::user_jwt::UserJWT;
 use crate::modules::auth;
+use crate::modules::auth::service::AuthService;
 mod modules;
 
 use crate::app_state::AppState;
@@ -48,14 +51,22 @@ async fn main() -> std::io::Result<()> {
         name: env_vars.db_name,
     });
 
+    let connection_mutex = Arc::new(Mutex::new(connection));
+
     let jwt = JWT::new(env_vars.jwt_secret);
+    
+    let user_jwt = UserJWT::new(jwt.clone());
+
+    let users_service = UsersService::new(connection_mutex.clone());
+    let auth_service = AuthService::new(connection_mutex.clone(), &jwt);
 
     let app_state = web::Data::new(AppState {
-        connection: Mutex::new(connection),
-        jwt,
+        users_service: Mutex::new(users_service),
+        auth_service: Mutex::new(auth_service),
+        user_jwt,
+        jwt: jwt.clone(),
     });
 
-    
     HttpServer::new(move || {
         App::new()
             .app_data(app_state.clone())

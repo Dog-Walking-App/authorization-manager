@@ -5,7 +5,7 @@ use crate::utils::auth_validator::auth_validator;
 pub mod controller;
 pub mod model;
 pub mod service;
-mod db;
+pub mod db;
 pub mod user_jwt;
 
 pub fn get_users_routes() -> Scope {

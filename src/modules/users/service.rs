@@ -1,3 +1,4 @@
+use std::sync::{Arc, Mutex};
 use diesel::prelude::*;
 use crate::utils::password::hash_password;
 use crate::utils::service_error::ServiceError;
@@ -12,17 +13,17 @@ pub trait UsersServiceTrait {
     fn delete_user(&mut self, user_id: i32) -> Result<User, ServiceError>;
 }
 
-pub struct UsersService<'a> {
-    users_db: Box<dyn UsersDBTrait + 'a>,
+pub struct UsersService {
+    users_db: UsersDB,
 }
 
-impl<'a> UsersService<'a> {
-    pub fn new(connection: &'a mut PgConnection) -> UsersService<'a> {
-        let users_db = Box::new(UsersDB::new(connection));
+impl UsersService {
+    pub fn new(connection: Arc<Mutex<PgConnection>>) -> UsersService {
+        let users_db = UsersDB::new(connection);
         UsersService { users_db }
     }
 
-    fn hash_password_in_user(&mut self, user: &NewUser) -> NewUser {
+    fn hash_password_in_user(&self, user: &NewUser) -> NewUser {
         let hashed_password: String = hash_password(&user.password)
             .expect("Failed to hash password");
         let new_user = NewUser {
@@ -33,7 +34,7 @@ impl<'a> UsersService<'a> {
     }
 }
 
-impl<'a> UsersServiceTrait for UsersService<'a> {
+impl UsersServiceTrait for UsersService {
     fn create_user(&mut self, new_user: &NewUser) -> Result<User, ServiceError> {
         let user = self.hash_password_in_user(new_user);
         self.users_db.insert(&user)

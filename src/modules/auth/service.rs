@@ -1,9 +1,10 @@
+use std::sync::{Arc, Mutex};
 use diesel::prelude::*;
-use crate::schema::users::dsl::*;
 use crate::utils::jwt::JWT;
 use crate::utils::password::verify_password;
 use crate::utils::service_error::ServiceError;
 use super::super::users::model::User;
+use super::super::users::db::{UsersDB, UsersDBTrait};
 use super::super::users::user_jwt::UserJWT;
 use super::model::Credentials;
 
@@ -16,38 +17,26 @@ pub trait AuthServiceTrait {
     fn login(&mut self, credentials: &Credentials) -> Result<LoginOutput, ServiceError>;
 }
 
-pub struct AuthService<'a> {
-    connection: &'a mut PgConnection,
-    user_jwt: UserJWT<'a>,
+pub struct AuthService {
+    users_db: UsersDB,
+    user_jwt: UserJWT,
 }
 
-impl<'a> AuthService<'a> {
+impl<'a> AuthService {
     pub fn new(
-        connection: &'a mut PgConnection,
+        connection: Arc<Mutex<PgConnection>>,
         jwt: &'a JWT,
-    ) -> AuthService<'a> {
-        let user_jwt = UserJWT::new(jwt);
-        AuthService { connection, user_jwt }
+    ) -> AuthService {
+        let user_jwt = UserJWT::new(jwt.clone());
+        let users_db = UsersDB::new(connection);
+        AuthService { users_db, user_jwt }
     }
 }
 
-fn get_user_by_username(
-    connection: &mut PgConnection,
-    value: &str,
-) -> QueryResult<User> {
-    users
-        .filter(username.eq(value))
-        .load::<User>(connection)?
-        .pop()
-        .ok_or(diesel::result::Error::NotFound)
-}
-
-impl<'a> AuthServiceTrait for AuthService<'a> {
+impl<'a> AuthServiceTrait for AuthService {
     fn login(&mut self, credentials: &Credentials) -> Result<LoginOutput, ServiceError> {
-        let user = get_user_by_username(
-            self.connection,
-            &credentials.username
-        ).map_err(|error| ServiceError::new(&error.to_string()))?;
+        let user = self.users_db.find_by_username(&credentials.username)
+            .map_err(|_| ServiceError::new("Failed to find the user"))?;
 
         let is_valid = verify_password(
             &credentials.password,

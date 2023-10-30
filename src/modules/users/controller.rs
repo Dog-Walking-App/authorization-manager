@@ -3,9 +3,8 @@ use serde::{Serialize, Deserialize};
 use crate::app_state::AppState;
 use crate::utils::http_authorization_token::HttpAuthorizationToken;
 use crate::utils::response_error::ResponseError;
-use super::service::{UsersService, UsersServiceTrait};
 use super::model::{NewUser, User};
-use super::user_jwt::UserJWT;
+use super::service::UsersServiceTrait;
 
 #[derive(Serialize, Deserialize)]
 pub struct UserResponse {
@@ -23,9 +22,7 @@ impl UserResponse {
 pub async fn get_users(
     data: web::Data<AppState>,
 ) -> Result<HttpResponse, ResponseError> {
-    let connection = &mut *data.connection.lock().unwrap();
-    let mut users_service = UsersService::new(connection);
-
+    let users_service = &mut *data.users_service.lock().unwrap();
     let users = users_service
         .get_all_users()
         .map_err(|_| ResponseError::InternalError)?;
@@ -42,9 +39,7 @@ pub async fn get_user_by_id(
     data: web::Data<AppState>,
     user_id: web::Path<i32>,
 ) -> Result<HttpResponse, ResponseError> {
-    let connection = &mut *data.connection.lock().unwrap();
-    let mut users_service = UsersService::new(connection);
-
+    let users_service = &mut *data.users_service.lock().unwrap();
     let user = users_service
         .get_user_by_id(*user_id)
         .map_err(|_| ResponseError::ErrorNotFound { entity: "User".to_string() })?;
@@ -56,16 +51,13 @@ pub async fn get_me(
     data: web::Data<AppState>,
     req: HttpRequest,
 ) -> Result<HttpResponse, ResponseError> {
-    let connection = &mut *data.connection.lock().unwrap();
-    let mut users_service = UsersService::new(connection);
-
+    let users_service = &mut *data.users_service.lock().unwrap();
     let token = HttpAuthorizationToken::get_token(&req)
         .map_err(|error| {
             eprintln!("Error acquiring token: {:?}", error);
             ResponseError::ErrorUnauthorized { message: "Invalid token".to_string() }
         })?;
-    let user_jwt = UserJWT::new(&data.jwt);
-    let claims = user_jwt.get_claims(&token)
+    let claims = data.user_jwt.get_claims(&token)
         .map_err(|error| {
             eprintln!("Error decoding token: {:?}", error);
             ResponseError::ErrorUnauthorized { message: "Invalid token".to_string() }
@@ -88,9 +80,7 @@ pub async fn create_user(
     data: web::Data<AppState>,
     json_data: web::Json<NewUserPayload>,
 ) -> Result<HttpResponse, ResponseError> {
-    let connection = &mut *data.connection.lock().unwrap();
-    let mut users_service = UsersService::new(connection);
-
+    let users_service = &mut *data.users_service.lock().unwrap();
     let user = users_service
         .create_user(&NewUser {
             username: json_data.username.to_owned(),

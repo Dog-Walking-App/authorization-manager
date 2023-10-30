@@ -1,13 +1,13 @@
-use actix_web::{post, web, HttpResponse};
+use actix_web::{web, HttpResponse};
 use serde::{Serialize, Deserialize};
-use crate::app_state::AppState;
 use crate::utils::response_error::ResponseError;
-use super::service::{AuthService, AuthServiceTrait};
+use crate::app_state::AppState;
 use super::model::Credentials;
 use super::super::users::controller::UserResponse;
+use super::service::AuthServiceTrait;
 
 #[derive(Serialize, Deserialize)]
-struct CredentialsPayload {
+pub struct CredentialsPayload {
     username: String,
     password: String,
 }
@@ -18,13 +18,11 @@ struct CredentialsResponse {
     user: UserResponse,
 }
 
-#[post("/login")]
-async fn login(data: web::Data<AppState>, json_data: web::Json<CredentialsPayload>) -> Result<HttpResponse, ResponseError> {
-    let connection = &mut *data.connection.lock().unwrap();
-    let jwt = &data.jwt;
-    let mut auth_service = AuthService::new(connection, jwt);
-
-    let result = auth_service
+pub async fn login(
+    data: web::Data<AppState>,
+    json_data: web::Json<CredentialsPayload>,
+) -> Result<HttpResponse, ResponseError> {
+    let result = data.auth_service.lock().unwrap()
         .login(&Credentials {
             username: json_data.username.to_owned(),
             password: json_data.password.to_owned(),

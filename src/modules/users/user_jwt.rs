@@ -18,12 +18,12 @@ pub struct UserClaims {
     pub exp: usize,
 }
 
-pub struct UserJWT<'a> {
-    jwt: &'a JWT,
+pub struct UserJWT {
+    jwt: JWT,
 }
 
-impl<'a> UserJWT<'a> {
-    pub fn new(jwt: &'a JWT) -> UserJWT<'a> {
+impl UserJWT {
+    pub fn new(jwt: JWT) -> UserJWT {
         UserJWT { jwt }
     }
     
