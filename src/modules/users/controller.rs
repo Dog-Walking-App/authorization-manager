@@ -90,3 +90,31 @@ pub async fn create_user(
     
     Ok(HttpResponse::Ok().json(UserResponse::from_user(&user)))
 }
+
+pub async fn update_me(
+    data: web::Data<AppState>,
+    req: HttpRequest,
+    json_data: web::Json<NewUserPayload>,
+) -> Result<HttpResponse, ResponseError> {
+    let users_service = &mut *data.users_service.lock().unwrap();
+
+    let token = HttpAuthorizationToken::get_token(&req)
+        .map_err(|error| {
+            eprintln!("Error acquiring token: {:?}", error);
+            ResponseError::ErrorUnauthorized { message: "Invalid token".to_string() }
+        })?;
+    let claims = data.user_jwt.get_claims(&token)
+        .map_err(|error| {
+            eprintln!("Error decoding token: {:?}", error);
+            ResponseError::ErrorUnauthorized { message: "Invalid token".to_string() }
+        })?;
+    
+    let user = users_service
+        .update_user(claims.user_id, &NewUser {
+            username: json_data.username.to_owned(),
+            password: json_data.password.to_owned(),
+        })
+        .map_err(|_| ResponseError::ErrorNotFound { entity: "User".to_string() })?;
+    
+    Ok(HttpResponse::Ok().json(UserResponse::from_user(&user)))
+}
