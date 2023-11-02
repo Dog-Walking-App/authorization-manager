@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 use diesel::prelude::*;
-use crate::utils::jwt::JWT;
+use jwt::jwt::JWT;
 use crate::utils::password::verify_password;
 use crate::utils::service_error::ServiceError;
 use super::super::users::model::User;

@@ -1,6 +1,6 @@
 use std::time::{SystemTime, Duration};
 use serde::{Serialize, Deserialize};
-use crate::utils::jwt::JWT;
+use jwt::jwt::JWT;
 use super::super::users::model::User;
 
 

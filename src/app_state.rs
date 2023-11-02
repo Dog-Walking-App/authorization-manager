@@ -1,5 +1,5 @@
 use std::sync::Mutex;
-use crate::utils::jwt::JWT;
+use jwt::jwt::JWT;
 use crate::users::service::UsersService;
 use crate::users::user_jwt::UserJWT;
 use crate::auth::service::AuthService;

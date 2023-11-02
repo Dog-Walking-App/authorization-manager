@@ -1,12 +1,11 @@
 use actix_web::{web, App, HttpServer};
 use env::EnvVars;
 use std::sync::{Arc, Mutex};
+use jwt::jwt::JWT;
 
 use crate::args::Args;
 mod args;
 mod env;
-
-use crate::utils::jwt::JWT;
 
 use crate::modules::users;
 use crate::modules::users::service::UsersService;
